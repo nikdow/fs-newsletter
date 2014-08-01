@@ -111,58 +111,48 @@ function fs_newsletter_meta() {
     $meta_country = $custom['fs_newsletter_country'][0];
     $meta_state = get_post_meta( $post->ID, 'fs_newsletter_state' ); // checkboxes stored as arrays
     $meta_post_type = $custom['fs_newsletter_post_type'][0];
-    $meta_newsletter = get_post_meta( $post->ID, 'fs_newsletter_newsletter_type' ); // checkbox stored as mutiple value
+    $meta_newsletter = get_post_meta ( $post->ID, 'fs_newsletter_newsletter_type' );
     
     echo '<input type="hidden" name="fs-newsletter-nonce" id="fs-newsletter-nonce" value="' .
         wp_create_nonce( 'fs-newsletter-nonce' ) . '" />';
-    
     $fs_states = fs_states();
-    $states = array();
-    $newsletter_types = array();
-    if( $meta_post_type==="signatures" ) {
-        foreach($fs_states as $ab => $title ) {
-            $states[$ab] = in_array( $ab, $meta_state[0] );
-        }
-        foreach ( $meta_newsletter[0] as $mn ) {
-            $newsletter_types[$mn] = true;
-        }
+    $ngStates = array();
+    foreach($fs_states as $ab => $title ) {
+        $ngStates[$ab] = is_array( $meta_state[0] ) && in_array( $ab, $meta_state[0] );
+    }
+    $ngNewsletter = array();
+    foreach ( array('y', 'm') as $ab ) {
+        $ngNewsletter[$ab] = is_array( $meta_newsletter[0] ) && in_array ( $ab, $meta_newsletter[0] );
     }
     ?>
     <script type="text/javascript">
         _main = <?=  json_encode( array ( 
             'postType'=>$meta_post_type,
             'country'=>( $meta_country ? $meta_country : "" ),
-            'newsletterType' => $newsletter_types,
-            'states'=> $states,
-            'ajax_url' => admin_url( 'admin-ajax.php' )
-        ) ) ?>;
-        _returns = <?= json_encode( array (
-            'id'=>$post->ID,
-            'action'=>'fs_send_newsletter',
-            'fs_nonce'=>wp_create_nonce( "fs_sendNewsletter" ),
+            'ajax_url' => admin_url( 'admin-ajax.php' ),
+            'states'=>$ngStates,
+            'newsletter'=>$ngNewsletter
         ) ) ?>;
     </script>
     <div class="fs-meta" ng-app="newsletterAdmin" ng-controller="newsletterAdminCtrl">
         <table><tr valign="top"><td width="60%">
             <ul>
                 <li><label>Send to which group?</label>
-                    <select ng-change="change()" ng-model="data.postType" name="fs_newsletter_post_type">
+                    <select ng-model="data.postType" name="fs_newsletter_post_type">
                         <option value="">Please select</option>
-                        <option value="members"<?=($meta_post_type==="members" ? " selected" : "")?>>Members</option>
-                        <option value="signatures"<?=($meta_post_type==="signatures" ? " selected" : "")?>>Signatures</option>
+                        <option value="members">Members</option>
+                        <option value="signatures">Signatures</option>
                     </select>
                 </li>
                 <li ng-show="data.postType==='signatures'"><label>Newsletter level</label>
-                    <input ng-change="change()" ng-model="data.newsletterType.y" name="fs_newsletter_newsletter_type[]" type="checkbox" value="y"
-                    >Occasional 
+                    <input ng-model="data.newsletter.y" name="fs_newsletter_newsletter_type[]" type="checkbox" value="y" />Occasional 
                 </li>
                 <li ng-show="data.postType==='signatures'">
                     <label>&nbsp;</label>
-                    <input ng-change="change()" ng-model="data.newsletterType.m" name="fs_newsletter_newsletter_type[]" type="checkbox" value="m"
-                    >Frequent
+                    <input ng-model="data.newsletter.m" name="fs_newsletter_newsletter_type[]" type="checkbox" value="m" />Frequent
                 </li>
                 <li ng-show="data.postType==='signatures'"><label>Country</label>
-                    <select ng-change="change()" ng-model="data.country" name="fs_newsletter_country">
+                    <select ng-model="data.country" name="fs_newsletter_country">
                         <option value="all">All</option>
                         <?php 
                         $fs_country = fs_country();
@@ -176,7 +166,7 @@ function fs_newsletter_meta() {
                 <?php 
                 foreach($fs_states as $ab => $title ) { ?>
                     <li ng-show="data.postType==='signatures' && data.country==='AU'"><label>&nbsp;</label>
-                        <input ng-change="change()" ng-model="data.states.<?=$ab?>" name="fs_newsletter_state[]" type="checkbox" value="<?=$ab;?>">
+                        <input ng-model="data.states.<?=$ab;?>" name="fs_newsletter_state[]" type="checkbox" value="<?=$ab;?>" />
                         <?php echo $title;?>
                     </li>
                 <?php } ?>
@@ -184,6 +174,8 @@ function fs_newsletter_meta() {
         </td>
         <td align="right" width="40%">
             <button type="button" ng-click="sendNewsletter()">Send newsletter</button>
+            <input name='ajax_id' value="<?=$post->ID?>" type="hidden"/>
+            <?=wp_nonce_field( 'fs_sendNewsletter', 'fs-sendNewsletter', false, false );?>
         </td></tr>
     </table>
     <?php    
@@ -262,7 +254,7 @@ function fs_sendNewsletter() {
     $id = $_POST['id'];
     if (
         ! isset( $_POST['fs_nonce'] ) 
-        || ! wp_verify_nonce( $_POST['fs_nonce'], 'fs_sendNewsletter' )
+        || ! wp_verify_nonce( $_POST['fs_sendNewsletter'], 'fs_sendNewsletter' )
     ) {
        echo json_encode( array( 'error'=>'Sorry, your nonce did not verify.' ) );
        die;
