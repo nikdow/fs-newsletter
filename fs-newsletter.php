@@ -17,7 +17,10 @@ function fs_newsletter_enqueue_scripts(  ) {
     wp_enqueue_script('angular');
     wp_register_script('newsletter-admin', plugins_url( 'js/newsletter-admin.js' , __FILE__ ), array('jquery', 'angular') );
     wp_localize_script( 'newsletter-admin', '_main',
-            array( 'ajax_url' => admin_url( 'admin-ajax.php' ) ) );
+        array( 'post_url' => admin_url('post.php'),
+               'ajax_url' => admin_url('admin-ajax.php'),
+        ) 
+    );
     wp_enqueue_script( 'newsletter-admin' );
     wp_enqueue_style('newsletter_style', plugins_url( 'css/admin-style.css' , __FILE__ ) );
 }
@@ -126,10 +129,9 @@ function fs_newsletter_meta() {
     }
     ?>
     <script type="text/javascript">
-        _main = <?=  json_encode( array ( 
+        _data = <?=  json_encode( array ( 
             'postType'=>$meta_post_type,
             'country'=>( $meta_country ? $meta_country : "" ),
-            'ajax_url' => admin_url( 'admin-ajax.php' ),
             'states'=>$ngStates,
             'newsletter'=>$ngNewsletter
         ) ) ?>;
@@ -172,36 +174,133 @@ function fs_newsletter_meta() {
                 <?php } ?>
             </ul>
         </td>
-        <td align="right" width="40%">
-            <button type="button" ng-click="sendNewsletter()">Send newsletter</button>
-            <input name='ajax_id' value="<?=$post->ID?>" type="hidden"/>
-            <?=wp_nonce_field( 'fs_sendNewsletter', 'fs-sendNewsletter', false, false );?>
+        <td align="left" width="40%" style='padding-left: 20px;'>
+            <ul>
+                <li>Test addresses (leave blank to send bulk):</li>
+                <li><input class='wide' name='fs_newsletter_test_addresses'/></li>
+                <li><button type="button" ng-click="sendNewsletter()">Send newsletter</button></li>
+                <li ng-show="showLoading"><img src="<?php echo get_site_url();?>/wp-includes/js/thickbox/loadingAnimation.gif"></li>
+                <li ng-show='showProgressNumber'>
+                    {{email.count}} sent of {{email.total}}
+                </li>
+                <li ng-show='showProgressMessage'>
+                    {{email.message}}
+                </li>
+            </ul>
         </td></tr>
     </table>
+    <input name='ajax_id' value="<?=$post->ID?>" type="hidden" />
+    <?=wp_nonce_field( 'fs_sendNewsletter', 'fs-sendNewsletter', false, false );?>
+    <input name='fs_newsletter_send_newsletter' value='0' type='hidden' />
     <?php    
 }
 
 add_action ('save_post', 'save_fs_newsletter');
  
 function save_fs_newsletter(){
- 
+    if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) return;
+    
     global $post;
+    
+    if( 'fs_newsletter' === $_POST['post_type'] ) {
 
     // - still require nonce
 
-    if ( !wp_verify_nonce( $_POST['fs-newsletter-nonce'], 'fs-newsletter-nonce' )) {
-        return $post->ID;
+        if ( !wp_verify_nonce( $_POST['fs-newsletter-nonce'], 'fs-newsletter-nonce' )) {
+            return $post->ID;
+        }
+
+        if ( !current_user_can( 'edit_post', $post->ID ))
+            return $post->ID;
+
+        // - convert back to unix & update post
+
+        update_post_meta($post->ID, "fs_newsletter_country", $_POST["fs_newsletter_country"] );
+        update_post_meta($post->ID, "fs_newsletter_state", $_POST["fs_newsletter_state"] ); // is an array of states
+        update_post_meta($post->ID, "fs_newsletter_newsletter_type", $_POST["fs_newsletter_newsletter_type"] ); // is an array of newsletter preference types
+        update_post_meta($post->ID, "fs_newsletter_post_type", $_POST["fs_newsletter_post_type"] );
+        if( isset( $_POST['fs_newsletter_send_newsletter']) && $_POST[ 'fs_newsletter_send_newsletter' ] === '1' ) {
+            
+            $test_addresses = $_POST['fs_newsletter_test_addresses'];
+            session_write_close (); // avoid session locking blocking progess ajax calls
+            update_post_meta($post->ID, "fs_newsletter_progress", json_encode( array ( 'count'=>0, 'total'=>Count( $sendTo ), 'message'=>'querying the database' ) ) );
+                    
+            if( $test_addresses !== "" ) {
+                
+                $addressArray = explode(",", $test_addresses );
+                $sendTo = array();
+                foreach ( $addressArray as $address ) {
+                    $sendTo[] = (object) array("name"=>"", "email"=>trim( $address ) );
+                }
+                
+            } else {
+               
+                $post_type_requested = $_POST["fs_newsletter_post_type"];
+
+                global $wpdb;
+                switch ( $post_type_requested ) {
+                    case "members":
+                        $query = $wpdb->prepare ( 
+                            "SELECT u.user_email as email, CONCAT( umf.meta_value, \" \", uml.meta_value ) as name FROM " . $wpdb->users . 
+                            " u LEFT JOIN " . $wpdb->usermeta . " ums ON ums.user_id=u.ID AND ums.meta_key='wpfreepp_user_level'" .
+                            " LEFT JOIN " . $wpdb->usermeta . " umf ON umf.user_id=u.ID AND umf.meta_key='first_name'" .
+                            " LEFT JOIN " . $wpdb->usermeta . " uml ON uml.user_id=u.ID AND uml.meta_key='last_name'" .
+                            " WHERE ums.meta_value=0 AND ums.meta_value IS NOT NULL", array() );
+                        $sendTo = $wpdb->get_results ( $query );
+                        break;
+                    case "signatures":
+                        $newsletter_type = get_post_meta( $post->ID, 'fs_newsletter_newsletter_type' );
+                        $query_in = implode ( '", "', $newsletter_type[0] );
+                        $meta_state = get_post_meta( $post->ID, 'fs_newsletter_state' );
+                        $state_in = implode ( '", "', $meta_state[0] );
+                        $country = $_POST["fs_newsletter_country"];
+
+                        $query = $wpdb->prepare ( 
+                            "SELECT p.post_title as name, pme.meta_value as email "
+                            . "FROM " . $wpdb->posts . " p" .
+                            " LEFT JOIN " . $wpdb->postmeta . " pmc ON pmc.post_id=p.ID AND pmc.meta_key='fs_signature_country'" . 
+                            " LEFT JOIN " . $wpdb->postmeta . " pms ON pms.post_id=p.ID AND pms.meta_key='fs_signature_state'" .
+                            " LEFT JOIN " . $wpdb->postmeta . " pmn ON pmn.post_id=p.ID AND pmn.meta_key='fs_signature_newsletter'" .
+                            " LEFT JOIN " . $wpdb->postmeta . " pme ON pme.post_id=p.ID AND pme.meta_key='fs_signature_email'" .
+                            " WHERE p.post_type='fs_signature' AND p.`post_status`='private' AND " .
+                            "pmn.meta_value in (\"" . $query_in . "\")" .
+                            ($country==="AU" ? " AND pms.meta_value in (\"" . $state_in . "\")" : "") .
+                            ($country === "all" ? "" : " AND pmc.meta_value=%s"),
+                            $country );
+                        $sendTo = $wpdb->get_results ( $query );
+                        break;
+                }
+            }
+            $testing = false; // true on dev computer - not the same as test addresses from UI
+            $count =0;
+            foreach ( $sendTo as $one ) {
+                $email = $one->email;
+                if ( $testing ) $email = "nik@cbdweb.net";
+                $subject = $post->post_title;
+                if ( $testing ) $subject .= " - " . $one->email;
+                $headers = array();
+                $headers[] = 'From: Freestyle Cyclists <info@freestylecyclists.org>';
+                $headers[] = "Content-type: text/html";
+                $message = $post->post_content;
+                wp_mail( $email, $subject, $message, $headers );
+                $count++;
+                update_post_meta($post->ID, "fs_newsletter_progress", json_encode( array ( 
+                    'count'=>$count, 'total'=>Count( $sendTo ),
+                    'message'=>'last email sent: ' . $email,
+                ) ) );
+                if ( $testing && $count > 5 ) break;
+            }
+            echo json_encode( array ( "success"=>"completed: " . $count . " emails" ) );
+            die;
+        }
     }
+}
 
-    if ( !current_user_can( 'edit_post', $post->ID ))
-        return $post->ID;
-
-    // - convert back to unix & update post
-
-    update_post_meta($post->ID, "fs_newsletter_country", $_POST["fs_newsletter_country"] );
-    update_post_meta($post->ID, "fs_newsletter_state", $_POST["fs_newsletter_state"] ); // is an array of states
-    update_post_meta($post->ID, "fs_newsletter_newsletter_type", $_POST["fs_newsletter_newsletter_type"] ); // is an array of newsletter preference types
-    update_post_meta($post->ID, "fs_newsletter_post_type", $_POST["fs_newsletter_post_type"] );
+add_action( 'wp_ajax_fs_newsletter_progress', 'fs_newsletter_progress' );
+function fs_newsletter_progress() {
+    $post_id = $_POST['post_id'];
+    echo get_post_meta( $post_id, 'fs_newsletter_progress', true );
+    die;
 }
 
 add_filter('post_updated_messages', 'newsletter_updated_messages');
@@ -230,13 +329,6 @@ function newsletter_updated_messages( $messages ) {
   return $messages;
 }
 /*
- * Give ourselves control over admin styles
-
-add_action( 'wp_print_styles', 'my_deregister_styles', 100 );
-function my_deregister_styles() {
-	wp_deregister_style( 'wp-admin' );
-}  */
-/*
  * label for title field on custom posts
  */
 
@@ -249,53 +341,3 @@ function fs_newsletter_enter_title( $input ) {
     }
     return $input;
 }
-add_action( 'wp_ajax_fs_send_newsletter', 'fs_sendNewsletter' );
-function fs_sendNewsletter() {
-    $id = $_POST['id'];
-    if (
-        ! isset( $_POST['fs_nonce'] ) 
-        || ! wp_verify_nonce( $_POST['fs_sendNewsletter'], 'fs_sendNewsletter' )
-    ) {
-       echo json_encode( array( 'error'=>'Sorry, your nonce did not verify.' ) );
-       die;
-    }
-    $post = get_post( $id, 'OBJECT' );
-    if( ! $post ) {
-        echo json_encode ( array ( 'error'=>'Unable to locate the newsletter post.' ) );
-        die;
-    }
-
-    $custom = get_post_custom( $post->ID );
-    $post_type_requested = $custom["fs_newsletter_post_type"][0];
-    
-    global $wpdb;
-    switch ( $post_type_requested ) {
-        case "members":
-            $query = $wpdb->prepare ( 
-                "SELECT u.user_email as email, umf.meta_value as first_name, uml.meta_value as last_name FROM " . $wpdb->users . 
-                " u LEFT JOIN " . $wpdb->usermeta . " ums ON ums.user_id=u.ID AND ums.meta_key='wpfreepp_user_level'" .
-                " LEFT JOIN " . $wpdb->usermeta . " umf ON umf.user_id=u.ID AND umf.meta_key='first_name'" .
-                " LEFT JOIN " . $wpdb->usermeta . " uml ON uml.user_id=u.ID AND uml.meta_key='last_name'" .
-                " WHERE ums.meta_value=0", array() );
-            $sendTo = $wpdb->get_results ( $query );
-            break;
-        case "signatures":
-            $newsletter_type = get_post_meta( $post->ID, 'fs_newsletter_newsletter_type' );
-            $query_in = implode ( '", "', $newsletter_type[0] );
-            $state = get_post_meta ( $post->ID, "fs_newsletter_state" );
-            $query = $wpdb->prepare ( 
-                "SELECT p.post_title, pmc.meta_value AS country, pms.meta_value AS state, pmn.meta_value as newsletter, pme.meta_value as email "
-                . "FROM " . $wpdb->posts . " p" .
-                " LEFT JOIN " . $wpdb->postmeta . " pmc ON pmc.post_id=p.ID AND pmc.meta_key='fs_signature_country'" . 
-                " LEFT JOIN " . $wpdb->postmeta . " pms ON pms.post_id=p.ID AND pms.meta_key='fs_signature_state'" .
-                " LEFT JOIN " . $wpdb->postmeta . " pmn ON pmn.post_id=p.ID AND pmn.meta_key='fs_signature_newsletter'" .
-                " LEFT JOIN " . $wpdb->postmeta . " pme ON pme.post_id=p.ID AND pme.meta_key='fs_signature_email'" .
-                " WHERE p.post_type='fs_signature' AND p.`post_status`='private' AND " .
-                "pmn.meta_value in (\"" . $query_in . "\")", array()
-            );
-            $sendTo = $wpdb->get_results ( $query );
-            break;
-    }
-    echo json_encode( $sendTo );
-    die;
-}   
