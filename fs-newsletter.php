@@ -10,7 +10,7 @@
 /*
  * Newsletters
  */
-function fs_newsletter_enqueue_scripts(  ) {
+function fs_newsletter_enqueue_scripts(  ) { 
     global $post;
     if( $post->post_type !== 'fs_newsletter' ) return;
     wp_register_script( 'angular', "//ajax.googleapis.com/ajax/libs/angularjs/1.2.18/angular.min.js", 'jquery' );
