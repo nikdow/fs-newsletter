@@ -221,6 +221,12 @@ function save_fs_newsletter(){
         update_post_meta($post->ID, "fs_newsletter_post_type", $_POST["fs_newsletter_post_type"] );
         if( isset( $_POST['fs_newsletter_send_newsletter']) && $_POST[ 'fs_newsletter_send_newsletter' ] === '1' ) {
             
+            /* try to prevent WP from sending text/plain */
+            add_filter( 'wp_mail_content_type', 'set_content_type' );
+            function set_content_type( $content_type ){
+                    return 'text/html';
+            }
+            
             $test_addresses = $_POST['fs_newsletter_test_addresses'];
             session_write_close (); // avoid session locking blocking progess ajax calls
             update_post_meta($post->ID, "fs_newsletter_progress", json_encode( array ( 'count'=>0, 'total'=>Count( $sendTo ), 'message'=>'querying the database' ) ) );
