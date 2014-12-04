@@ -10,10 +10,10 @@ newsletterAdmin.controller('newsletterAdminCtrl', ['$scope', '$timeout',
         $scope.showLoading = false;
 
         $scope.sendNewsletter = function() {
-            if ( $('#post input[name=fs_newsletter_test_addresses]').val() === "" ) {
+            if ( $('#post input[name=cbdweb_newsletter_test_addresses]').val() === "" ) {
                 if ( ! confirm( 'Are you sure?  This will send to all recipients!' ) ) return;
             }
-            $('#post input[name=fs_newsletter_send_newsletter]').val('1');
+            $('#post input[name=cbdweb_newsletter_send_newsletter]').val('1');
             var data = $('#post').serializeArray();
             $scope.sending = true;
             $scope.showLoading = true;
@@ -27,14 +27,14 @@ newsletterAdmin.controller('newsletterAdminCtrl', ['$scope', '$timeout',
                 $scope.showProgressNumber = false;
                 $scope.email.message = ajaxdata.success;
                 $scope.$apply();
-                $('#post input[name=fs_newsletter_send_newsletter]').val('0');
+                $('#post input[name=cbdweb_newsletter_send_newsletter]').val('0');
             });
             /* progress */
             $scope.progress = $timeout ( $scope.displayProgress, 1000 );
         };
         
         $scope.displayProgress = function() {
-            data = {'action':'fs_newsletter_progress', 'post_id':$('#post input[name=ajax_id]').val() };
+            data = {'action':'cbdweb_newsletter_progress', 'post_id':$('#post input[name=ajax_id]').val() };
             $.post ( $scope.main.ajax_url, data, function ( response ) {
                 $scope.showLoading = false;
                 $scope.$apply();

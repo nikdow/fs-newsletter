@@ -11,9 +11,9 @@ require_once plugin_dir_path ( __FILE__ ) . 'options.php';
 /*
  * Newsletters
  */
-function fs_newsletter_enqueue_scripts(  ) { 
+function cbdweb_newsletter_enqueue_scripts(  ) { 
     global $post;
-    if( $post->post_type !== 'fs_newsletter' ) return;
+    if( $post->post_type !== 'cbdweb_newsletter' ) return;
     wp_register_script( 'angular', "//ajax.googleapis.com/ajax/libs/angularjs/1.2.18/angular.min.js", 'jquery' );
     wp_enqueue_script('angular');
     wp_register_script('newsletter-admin', plugins_url( 'js/newsletter-admin.js' , __FILE__ ), array('jquery', 'angular') );
@@ -25,10 +25,10 @@ function fs_newsletter_enqueue_scripts(  ) {
     wp_enqueue_script( 'newsletter-admin' );
     wp_enqueue_style('newsletter_style', plugins_url( 'css/admin-style.css' , __FILE__ ) );
 }
-add_action( 'admin_enqueue_scripts', 'fs_newsletter_enqueue_scripts' );
+add_action( 'admin_enqueue_scripts', 'cbdweb_newsletter_enqueue_scripts' );
 
-add_action( 'init', 'create_fs_newsletter' );
-function create_fs_newsletter() {
+add_action( 'init', 'create_cbdweb_newsletter' );
+function create_cbdweb_newsletter() {
     $labels = array(
         'name' => _x('Newsletters', 'post type general name'),
         'singular_name' => _x('Newsletter', 'post type singular name'),
@@ -42,7 +42,7 @@ function create_fs_newsletter() {
         'not_found_in_trash' => __('No newsletters found in Trash'),
         'parent_item_colon' => '',
     );
-    register_post_type( 'fs_newsletter',
+    register_post_type( 'cbdweb_newsletter',
         array(
             'label'=>__('Newsletters'),
             'labels' => $labels,
@@ -64,25 +64,25 @@ function create_fs_newsletter() {
 /*
  * specify columns in admin view of signatures custom post listing
  */
-add_filter ( "manage_edit-fs_newsletter_columns", "fs_newsletter_edit_columns" );
-add_action ( "manage_posts_custom_column", "fs_newsletter_custom_columns" );
-function fs_newsletter_edit_columns($columns) {
+add_filter ( "manage_edit-cbdweb_newsletter_columns", "cbdweb_newsletter_edit_columns" );
+add_action ( "manage_posts_custom_column", "cbdweb_newsletter_custom_columns" );
+function cbdweb_newsletter_edit_columns($columns) {
     $columns = array(
         "cb" => "<input type=\"checkbox\" />",
         "title" => "Subject",
         "fs_col_post_type" => "Subscriber type",
         "fs_col_newsletter_type" => "Newsletter type",
-        "fs_newsletter_country" => "Country",
-        "fs_newsletter_state" => "State",
+        "cbdweb_newsletter_country" => "Country",
+        "cbdweb_newsletter_state" => "State",
     );
     return $columns;
 }
-function fs_newsletter_custom_columns($column) {
+function cbdweb_newsletter_custom_columns($column) {
     global $post;
     $custom = get_post_custom();
-    $newsletter_type = get_post_meta( $post->ID, 'fs_newsletter_newsletter_type' );
-    $post_type = $custom["fs_newsletter_post_type"][0];
-    $state = get_post_meta ( $post->ID, "fs_newsletter_state" );
+    $newsletter_type = get_post_meta( $post->ID, 'cbdweb_newsletter_newsletter_type' );
+    $post_type = $custom["cbdweb_newsletter_post_type"][0];
+    $state = get_post_meta ( $post->ID, "cbdweb_newsletter_state" );
     switch ( $column ) {
         case "title":
             echo $post->post_title;
@@ -93,29 +93,29 @@ function fs_newsletter_custom_columns($column) {
         case "fs_col_newsletter_type":
             echo $post_type === "members" || ! is_array( $newsletter_type[0] ) ? "&nbsp;" : implode ( ', ', $newsletter_type[0] );
             break;
-        case "fs_newsletter_country":
-            echo $post_type === "members" ? "&nbsp;" : $custom["fs_newsletter_country"][0];
+        case "cbdweb_newsletter_country":
+            echo $post_type === "members" ? "&nbsp;" : $custom["cbdweb_newsletter_country"][0];
             break;
-        case "fs_newsletter_state":
+        case "cbdweb_newsletter_state":
             echo $post_type === "members" ? "&nbsp;" : 
-                    ( $custom["fs_newsletter_country"][0]!=="AU" || ! is_array( $state[0] ) ? '&nbsp;' : implode ( ', ', $state[0] ) );
+                    ( $custom["cbdweb_newsletter_country"][0]!=="AU" || ! is_array( $state[0] ) ? '&nbsp;' : implode ( ', ', $state[0] ) );
             break;
     }
 }
 /*
  * Add fields for admin to edit signature custom post
  */
-add_action( 'admin_init', 'fs_newsletter_create' );
-function fs_newsletter_create() {
-    add_meta_box('fs_newsletter_meta', 'Newsletter', 'fs_newsletter_meta', 'fs_newsletter' );
+add_action( 'admin_init', 'cbdweb_newsletter_create' );
+function cbdweb_newsletter_create() {
+    add_meta_box('cbdweb_newsletter_meta', 'Newsletter', 'cbdweb_newsletter_meta', 'cbdweb_newsletter' );
 }
-function fs_newsletter_meta() {
+function cbdweb_newsletter_meta() {
     global $post;
     $custom = get_post_custom( $post->ID );
-    $meta_country = $custom['fs_newsletter_country'][0];
-    $meta_state = get_post_meta( $post->ID, 'fs_newsletter_state' ); // checkboxes stored as arrays
-    $meta_post_type = $custom['fs_newsletter_post_type'][0];
-    $meta_newsletter = get_post_meta ( $post->ID, 'fs_newsletter_newsletter_type' );
+    $meta_country = $custom['cbdweb_newsletter_country'][0];
+    $meta_state = get_post_meta( $post->ID, 'cbdweb_newsletter_state' ); // checkboxes stored as arrays
+    $meta_post_type = $custom['cbdweb_newsletter_post_type'][0];
+    $meta_newsletter = get_post_meta ( $post->ID, 'cbdweb_newsletter_newsletter_type' );
     
     echo '<input type="hidden" name="fs-newsletter-nonce" id="fs-newsletter-nonce" value="' .
         wp_create_nonce( 'fs-newsletter-nonce' ) . '" />';
@@ -141,21 +141,21 @@ function fs_newsletter_meta() {
         <table><tr valign="top"><td width="60%">
             <ul>
                 <li><label>Send to which group?</label>
-                    <select ng-model="data.postType" name="fs_newsletter_post_type">
+                    <select ng-model="data.postType" name="cbdweb_newsletter_post_type">
                         <option value="">Please select</option>
                         <option value="members">Members</option>
                         <option value="signatures">Signatures</option>
                     </select>
                 </li>
                 <li ng-show="data.postType==='signatures'"><label>Newsletter level</label>
-                    <input ng-model="data.newsletter.y" name="fs_newsletter_newsletter_type[]" type="checkbox" value="y" />Occasional 
+                    <input ng-model="data.newsletter.y" name="cbdweb_newsletter_newsletter_type[]" type="checkbox" value="y" />Occasional 
                 </li>
                 <li ng-show="data.postType==='signatures'">
                     <label>&nbsp;</label>
-                    <input ng-model="data.newsletter.m" name="fs_newsletter_newsletter_type[]" type="checkbox" value="m" />Frequent
+                    <input ng-model="data.newsletter.m" name="cbdweb_newsletter_newsletter_type[]" type="checkbox" value="m" />Frequent
                 </li>
                 <li ng-show="data.postType==='signatures'"><label>Country</label>
-                    <select ng-model="data.country" name="fs_newsletter_country">
+                    <select ng-model="data.country" name="cbdweb_newsletter_country">
                         <option value="all">All</option>
                         <?php 
                         $fs_country = fs_country();
@@ -169,7 +169,7 @@ function fs_newsletter_meta() {
                 <?php 
                 foreach($fs_states as $ab => $title ) { ?>
                     <li ng-show="data.postType==='signatures' && data.country==='AU'"><label>&nbsp;</label>
-                        <input ng-model="data.states.<?=$ab;?>" name="fs_newsletter_state[]" type="checkbox" value="<?=$ab;?>" />
+                        <input ng-model="data.states.<?=$ab;?>" name="cbdweb_newsletter_state[]" type="checkbox" value="<?=$ab;?>" />
                         <?php echo $title;?>
                     </li>
                 <?php } ?>
@@ -178,7 +178,7 @@ function fs_newsletter_meta() {
         <td align="left" width="40%" style='padding-left: 20px;'>
             <ul>
                 <li>Test addresses (leave blank to send bulk):</li>
-                <li><input class='wide' name='fs_newsletter_test_addresses'/></li>
+                <li><input class='wide' name='cbdweb_newsletter_test_addresses'/></li>
                 <li><button type="button" ng-click="sendNewsletter()">Send newsletter</button></li>
                 <li ng-show="showLoading"><img src="<?php echo get_site_url();?>/wp-includes/js/thickbox/loadingAnimation.gif"></li>
                 <li ng-show='showProgressNumber'>
@@ -192,18 +192,18 @@ function fs_newsletter_meta() {
     </table>
     <input name='ajax_id' value="<?=$post->ID?>" type="hidden" />
     <?=wp_nonce_field( 'fs_sendNewsletter', 'fs-sendNewsletter', false, false );?>
-    <input name='fs_newsletter_send_newsletter' value='0' type='hidden' />
+    <input name='cbdweb_newsletter_send_newsletter' value='0' type='hidden' />
     <?php    
 }
 
-add_action ('save_post', 'save_fs_newsletter');
+add_action ('save_post', 'save_cbdweb_newsletter');
  
-function save_fs_newsletter(){
+function save_cbdweb_newsletter(){
     if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) return;
     
     global $post;
     
-    if( 'fs_newsletter' === $_POST['post_type'] ) {
+    if( 'cbdweb_newsletter' === $_POST['post_type'] ) {
 
     // - still require nonce
 
@@ -216,11 +216,11 @@ function save_fs_newsletter(){
 
         // - convert back to unix & update post
 
-        update_post_meta($post->ID, "fs_newsletter_country", $_POST["fs_newsletter_country"] );
-        update_post_meta($post->ID, "fs_newsletter_state", $_POST["fs_newsletter_state"] ); // is an array of states
-        update_post_meta($post->ID, "fs_newsletter_newsletter_type", $_POST["fs_newsletter_newsletter_type"] ); // is an array of newsletter preference types
-        update_post_meta($post->ID, "fs_newsletter_post_type", $_POST["fs_newsletter_post_type"] );
-        if( isset( $_POST['fs_newsletter_send_newsletter']) && $_POST[ 'fs_newsletter_send_newsletter' ] === '1' ) {
+        update_post_meta($post->ID, "cbdweb_newsletter_country", $_POST["cbdweb_newsletter_country"] );
+        update_post_meta($post->ID, "cbdweb_newsletter_state", $_POST["cbdweb_newsletter_state"] ); // is an array of states
+        update_post_meta($post->ID, "cbdweb_newsletter_newsletter_type", $_POST["cbdweb_newsletter_newsletter_type"] ); // is an array of newsletter preference types
+        update_post_meta($post->ID, "cbdweb_newsletter_post_type", $_POST["cbdweb_newsletter_post_type"] );
+        if( isset( $_POST['cbdweb_newsletter_send_newsletter']) && $_POST[ 'cbdweb_newsletter_send_newsletter' ] === '1' ) {
             
             /* try to prevent WP from sending text/plain */
             add_filter( 'wp_mail_content_type', 'set_content_type' );
@@ -228,9 +228,9 @@ function save_fs_newsletter(){
                     return 'text/html';
             }
             
-            $test_addresses = $_POST['fs_newsletter_test_addresses'];
+            $test_addresses = $_POST['cbdweb_newsletter_test_addresses'];
             session_write_close (); // avoid session locking blocking progess ajax calls
-            update_post_meta($post->ID, "fs_newsletter_progress", json_encode( array ( 'count'=>0, 'total'=>Count( $sendTo ), 'message'=>'querying the database' ) ) );
+            update_post_meta($post->ID, "cbdweb_newsletter_progress", json_encode( array ( 'count'=>0, 'total'=>Count( $sendTo ), 'message'=>'querying the database' ) ) );
                     
             if( $test_addresses !== "" ) {
                 
@@ -242,7 +242,7 @@ function save_fs_newsletter(){
                 
             } else {
                
-                $post_type_requested = $_POST["fs_newsletter_post_type"];
+                $post_type_requested = $_POST["cbdweb_newsletter_post_type"];
 
                 global $wpdb;
                 switch ( $post_type_requested ) {
@@ -256,11 +256,11 @@ function save_fs_newsletter(){
                         $sendTo = $wpdb->get_results ( $query );
                         break;
                     case "signatures":
-                        $newsletter_type = get_post_meta( $post->ID, 'fs_newsletter_newsletter_type' );
+                        $newsletter_type = get_post_meta( $post->ID, 'cbdweb_newsletter_newsletter_type' );
                         $query_in = implode ( '", "', $newsletter_type[0] );
-                        $meta_state = get_post_meta( $post->ID, 'fs_newsletter_state' );
+                        $meta_state = get_post_meta( $post->ID, 'cbdweb_newsletter_state' );
                         $state_in = implode ( '", "', $meta_state[0] );
-                        $country = $_POST["fs_newsletter_country"];
+                        $country = $_POST["cbdweb_newsletter_country"];
 
                         $query = $wpdb->prepare ( 
                             "SELECT p.post_title as name, pme.meta_value as email "
@@ -291,7 +291,7 @@ function save_fs_newsletter(){
                 $message = $post->post_content;
                 wp_mail( $email, $subject, $message, $headers );
                 $count++;
-                update_post_meta($post->ID, "fs_newsletter_progress", json_encode( array ( 
+                update_post_meta($post->ID, "cbdweb_newsletter_progress", json_encode( array ( 
                     'count'=>$count, 'total'=>Count( $sendTo ),
                     'message'=>'last email sent: ' . $email,
                 ) ) );
@@ -303,20 +303,20 @@ function save_fs_newsletter(){
     }
 }
 
-add_action( 'wp_ajax_fs_newsletter_progress', 'fs_newsletter_progress' );
-function fs_newsletter_progress() {
+add_action( 'wp_ajax_cbdweb_newsletter_progress', 'cbdweb_newsletter_progress' );
+function cbdweb_newsletter_progress() {
     $post_id = $_POST['post_id'];
-    echo get_post_meta( $post_id, 'fs_newsletter_progress', true );
+    echo get_post_meta( $post_id, 'cbdweb_newsletter_progress', true );
     die;
 }
 
-add_filter('post_updated_messages', 'newsletter_updated_messages');
+add_filter('post_updated_messages', 'cbdweb_newsletter_updated_messages');
  
-function newsletter_updated_messages( $messages ) {
+function cbdweb_newsletter_updated_messages( $messages ) {
  
   global $post, $post_ID;
  
-  $messages['fs_newsletter'] = array(
+  $messages['cbdweb_newsletter'] = array(
     0 => '', // Unused. Messages start at index 1.
     1 => sprintf( __('Newsletter updated. <a href="%s">View item</a>'), esc_url( get_permalink($post_ID) ) ),
     2 => __('Custom field updated.'),
@@ -339,11 +339,11 @@ function newsletter_updated_messages( $messages ) {
  * label for title field on custom posts
  */
 
-add_filter('enter_title_here', 'fs_newsletter_enter_title');
-function fs_newsletter_enter_title( $input ) {
+add_filter('enter_title_here', 'cbdweb_newsletter_enter_title');
+function cbdweb_newsletter_enter_title( $input ) {
     global $post_type;
 
-    if ( 'fs_newsletter' === $post_type ) {
+    if ( 'cbdweb_newsletter' === $post_type ) {
         return __( 'Newsletter (email) subject' );
     }
     return $input;

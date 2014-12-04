@@ -2,15 +2,15 @@
 /*
  * Signatures options menu item and options page
  */
-add_action( 'admin_menu', 'CBDWeb_newsletter_menu' );
+add_action( 'admin_menu', 'cbdweb_newsletter_menu' );
 
 /** Step 1. */
-function CBDWeb_newsletter_menu() {
-        add_submenu_page( 'edit.php?post_type=fs_newsletter', 'Newsletter Options', 'Options', 'manage_options', basename(__FILE__), 'CBDWeb_newsletter_options' );
+function cbdweb_newsletter_menu() {
+        add_submenu_page( 'edit.php?post_type=cbdweb_newsletter', 'Newsletter Options', 'Options', 'manage_options', basename(__FILE__), 'cbdweb_newsletter_options' );
 }
 
 /** Step 3. */
-function CBDWeb_newsletter_options() {
+function cbdweb_newsletter_options() {
         if ( !current_user_can( 'manage_options' ) )  {
 		wp_die( __( 'You do not have sufficient permissions to access this page.' ) );
 	}
@@ -18,11 +18,11 @@ function CBDWeb_newsletter_options() {
             // variables for the field and option names 
             $hidden_field_name = 'CBDWeb_submit_hidden';
             $options_array = array ( 
-                array('opt_name'=>'CBDWeb-newsletter-sender-name', 'data_field_name'=>'CBDWeb_newsletter_sender-name', 
+                array('opt_name'=>'CBDWeb-newsletter-sender-name', 'data_field_name'=>'cbdweb_newsletter_sender-name', 
                     'opt_label'=>'Newsletter sender (common name)', 'field_type'=>'text'),
-                array('opt_name'=>'CBDWeb-newsletter-sender-address', 'data_field_name'=>'CBDWeb_newsletter_sender-address', 
+                array('opt_name'=>'CBDWeb-newsletter-sender-address', 'data_field_name'=>'cbdweb_newsletter_sender-address', 
                     'opt_label'=>'Newsletter sender (email address)', 'field_type'=>'email'),
-                array('opt_name'=>'CBDWeb-newsletter-template', 'data_field_name'=>'CBDWeb_newsletter_template',
+                array('opt_name'=>'CBDWeb-newsletter-template', 'data_field_name'=>'cbdweb_newsletter_template',
                     'opt_label'=>"HTML template for Newsletters", 'field_type'=>'textarea' ),
             );
 
@@ -51,7 +51,7 @@ function CBDWeb_newsletter_options() {
 
             <h2>Newsletter Settings</h2>
 
-            <form name="CBDWeb_newsletter_options" id="CBDWeb_newsletter_options" method="post" action="">
+            <form name="cbdweb_newsletter_options" id="cbdweb_newsletter_options" method="post" action="">
                 <input type="hidden" name="<?php echo $hidden_field_name; ?>" value="Y">
 
                 <?php 
