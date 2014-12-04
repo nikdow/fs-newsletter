@@ -7,6 +7,7 @@
  * Author: Nik Dow, CBDWeb
  * License: GPL2
  */
+require_once plugin_dir_path ( __FILE__ ) . 'options.php';
 /*
  * Newsletters
  */
@@ -28,7 +29,7 @@ add_action( 'admin_enqueue_scripts', 'fs_newsletter_enqueue_scripts' );
 
 add_action( 'init', 'create_fs_newsletter' );
 function create_fs_newsletter() {
-	$labels = array(
+    $labels = array(
         'name' => _x('Newsletters', 'post type general name'),
         'singular_name' => _x('Newsletter', 'post type singular name'),
         'add_new' => _x('Add New', 'events'),
