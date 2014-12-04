@@ -18,11 +18,11 @@ function cbdweb_newsletter_options() {
             // variables for the field and option names 
             $hidden_field_name = 'CBDWeb_submit_hidden';
             $options_array = array ( 
-                array('opt_name'=>'CBDWeb-newsletter-sender-name', 'data_field_name'=>'cbdweb_newsletter_sender-name', 
+                array('opt_name'=>'cbdweb-newsletter-sender-name', 'data_field_name'=>'cbdweb_newsletter_sender-name', 
                     'opt_label'=>'Newsletter sender (common name)', 'field_type'=>'text'),
-                array('opt_name'=>'CBDWeb-newsletter-sender-address', 'data_field_name'=>'cbdweb_newsletter_sender-address', 
+                array('opt_name'=>'cbdweb-newsletter-sender-address', 'data_field_name'=>'cbdweb_newsletter_sender-address', 
                     'opt_label'=>'Newsletter sender (email address)', 'field_type'=>'email'),
-                array('opt_name'=>'CBDWeb-newsletter-template', 'data_field_name'=>'cbdweb_newsletter_template',
+                array('opt_name'=>'cbdweb-newsletter-template', 'data_field_name'=>'cbdweb_newsletter_template',
                     'opt_label'=>"HTML template for Newsletters", 'field_type'=>'textarea' ),
             );
 

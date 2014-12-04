@@ -286,7 +286,7 @@ function save_cbdweb_newsletter(){
                 $subject = $post->post_title;
                 if ( $testing ) $subject .= " - " . $one->email;
                 $headers = array();
-                $headers[] = 'From: Freestyle Cyclists <info@freestylecyclists.org>';
+                $headers[] = 'From: ' . get_option('cbdweb_newsletter_sender-name') . " <" . get_option('cbdweb_newsletter_sender-address') . '>';
                 $headers[] = "Content-type: text/html";
                 $message = $post->post_content;
                 wp_mail( $email, $subject, $message, $headers );
@@ -347,4 +347,28 @@ function cbdweb_newsletter_enter_title( $input ) {
         return __( 'Newsletter (email) subject' );
     }
     return $input;
+}
+
+add_filter( 'default_content', 'cbdweb_newsletter_content', 10, 2 );
+
+function cbdweb_newsletter_content( $content, $post ) {
+
+    if( $post->post_type !== "cbdweb_newsletter") {
+        return $content;
+    }
+ 
+    $template = get_option( 'cbdweb-newsletter-template' );
+    
+    $today = date( get_option('time_format') );
+    $unsubscribe = add_query_arg ( "email", "%email%", get_permalink( get_page_by_title( 'Unsubscribe' ) ) );
+    
+    $content = str_replace( 
+                array( '{today}',
+                    '{unsubscribe}',
+                    ),
+                array( $today,
+                    $unsubscribe,
+                    ),
+                $template );
+    return $content;
 }
