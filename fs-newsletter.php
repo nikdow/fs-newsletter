@@ -289,6 +289,7 @@ function save_cbdweb_newsletter(){
                 $headers[] = 'From: ' . get_option('cbdweb_newsletter_sender-name') . " <" . get_option('cbdweb_newsletter_sender-address') . '>';
                 $headers[] = "Content-type: text/html";
                 $message = $post->post_content;
+                $message = str_replace("\r\n", "<br/>\r\n", $message );
                 wp_mail( $email, $subject, $message, $headers );
                 $count++;
                 update_post_meta($post->ID, "cbdweb_newsletter_progress", json_encode( array ( 
