@@ -289,7 +289,7 @@ function save_fs_newsletter(){
                 $headers[] = 'From: ' . get_option('fs_newsletter_sender-name') . " <" . get_option('fs_newsletter_sender-address') . '>';
                 $headers[] = "Content-type: text/html";
                 $message = $post->post_content;
-                $message = str_replace("\r\n", "<br/>\r\n", $message );
+                $message = str_replace("\r\n", "<br>\r\n", $message );
                 wp_mail( $email, $subject, $message, $headers );
                 $count++;
                 update_post_meta($post->ID, "fs_newsletter_progress", json_encode( array ( 
