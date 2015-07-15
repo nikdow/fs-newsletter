@@ -8,12 +8,14 @@ newsletterAdmin.controller('newsletterAdminCtrl', ['$scope', '$timeout',
         $scope.data = _data;
         $scope.main = _main;
         $scope.showLoading = false;
+        $scope.fs_newsletter_send_newsletter = 0;
 
         $scope.sendNewsletter = function() {
             if ( $('#post input[name=cbdweb_newsletter_test_addresses]').val() === "" ) {
                 if ( ! confirm( 'Are you sure?  This will send to all recipients!' ) ) return;
             }
-            $('#post input[name=cbdweb_newsletter_send_newsletter]').val('1');
+            $('#post input[name=fs_newsletter_send_newsletter]').val('1');
+            $scope.fs_newsletter_send_newsletter = '1';
             var data = $('#post').serializeArray();
             $scope.sending = true;
             $scope.showLoading = true;

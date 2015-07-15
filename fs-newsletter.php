@@ -192,7 +192,7 @@ function fs_newsletter_meta() {
     </table>
     <input name='ajax_id' value="<?=$post->ID?>" type="hidden" />
     <?=wp_nonce_field( 'fs_sendNewsletter', 'fs-sendNewsletter', false, false );?>
-    <input name='fs_newsletter_send_newsletter' value='0' type='hidden' />
+    <input name='fs_newsletter_send_newsletter' ng-model="fs_newsletter_send_newsletter" type='hidden' />
     <?php    
 }
 
@@ -358,7 +358,7 @@ function fs_newsletter_content( $content, $post ) {
         return $content;
     }
  
-    $template = get_option( 'cbdweb-newsletter-template' );
+    $template = get_option( 'fs_newsletter_template' );
     
     $today = date( get_option('time_format') );
     $unsubscribe = add_query_arg ( "email", "%email%", get_permalink( get_page_by_title( 'Unsubscribe' ) ) );
