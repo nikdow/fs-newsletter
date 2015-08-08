@@ -82,6 +82,8 @@ function fs_newsletter_custom_columns($column) {
     $custom = get_post_custom();
     $newsletter_type = get_post_meta( $post->ID, 'fs_newsletter_newsletter_type' );
     $post_type = $custom["fs_newsletter_post_type"][0];
+    $member_active = $custom["fs_newsletter_active"][0] === "y";
+    $member_expired = $custom["fs_newsletter_expired"][0] === "n";
     $state = get_post_meta ( $post->ID, "fs_newsletter_state" );
     switch ( $column ) {
         case "title":
@@ -114,7 +116,9 @@ function fs_newsletter_meta() {
     $custom = get_post_custom( $post->ID );
     $meta_country = $custom['fs_newsletter_country'][0];
     $meta_state = get_post_meta( $post->ID, 'fs_newsletter_state' ); // checkboxes stored as arrays
-    $meta_post_type = $custom['fs_newsletter_post_type'][0];
+    $meta_post_type = $custom['fs_newsletter_post_type'][0]; 
+    $meta_member_active = $custom["fs_newsletter_active"][0];
+    $meta_member_expired = $custom["fs_newsletter_expired"][0];
     $meta_newsletter = get_post_meta ( $post->ID, 'fs_newsletter_newsletter_type' );
     
     echo '<input type="hidden" name="fs-newsletter-nonce" id="fs-newsletter-nonce" value="' .
@@ -132,6 +136,8 @@ function fs_newsletter_meta() {
     <script type="text/javascript">
         _data = <?=  json_encode( array ( 
             'postType'=>$meta_post_type,
+            'member_active' => $custom["fs_newsletter_active"][0] === "y",
+            'member_expired' => $custom["fs_newsletter_expired"][0] === "y",
             'country'=>( $meta_country ? $meta_country : "" ),
             'states'=>$ngStates,
             'newsletter'=>$ngNewsletter
@@ -146,6 +152,12 @@ function fs_newsletter_meta() {
                         <option value="members">Members</option>
                         <option value="signatures">Signatures</option>
                     </select>
+                </li>
+                <li ng-hide="data.postType==='signatures'"><label>Financial</label>
+                    <input ng-model="data.member_active" name="fs_newsletter_active" type="checkbox" value="y" />
+                </li>
+                <li ng-hide="data.postType==='signatures'"><label>Expired</label>
+                    <input ng-model="data.member_expired" name="fs_newsletter_expired" type="checkbox" value="y" />
                 </li>
                 <li ng-show="data.postType==='signatures'"><label>Newsletter level</label>
                     <input ng-model="data.newsletter.y" name="fs_newsletter_newsletter_type[]" type="checkbox" value="y" />Occasional 
@@ -220,7 +232,11 @@ function save_fs_newsletter(){
         update_post_meta($post->ID, "fs_newsletter_state", $_POST["fs_newsletter_state"] ); // is an array of states
         update_post_meta($post->ID, "fs_newsletter_newsletter_type", $_POST["fs_newsletter_newsletter_type"] ); // is an array of newsletter preference types
         update_post_meta($post->ID, "fs_newsletter_post_type", $_POST["fs_newsletter_post_type"] );
-        if( isset( $_POST['fs_newsletter_send_newsletter']) && $_POST[ 'fs_newsletter_send_newsletter' ] === '1' ) {
+        update_post_meta($post->ID, "fs_newsletter_active", 
+            ( isset ( $_POST["fs_newsletter_active"] ) && $_POST["fs_newsletter_active"]==="y" ) ? "y" : "n" );
+        update_post_meta($post->ID, "fs_newsletter_expired", 
+            ( isset ( $_POST["fs_newsletter_expired"] ) && $_POST["fs_newsletter_expired"]==="y") ? "y" : "n" );
+        if( isset( $_POST['fs_newsletter_send_newsletter'] ) && $_POST[ 'fs_newsletter_send_newsletter' ] === '1' ) {
             
             /* try to prevent WP from sending text/plain */
             add_filter( 'wp_mail_content_type', 'set_content_type' );
@@ -247,12 +263,25 @@ function save_fs_newsletter(){
                 global $wpdb;
                 switch ( $post_type_requested ) {
                     case "members":
-                        $query = $wpdb->prepare ( 
+                        $fs_newsletter_active = isset ( $_POST["fs_newsletter_active"] ) ?
+                            $_POST["fs_newsletter_active"]==="y" : false; 
+                        $fs_newsletter_expired = isset ( $_POST["fs_newsletter_expired"] ) ?
+                            $_POST["fs_newsletter_expired"]==="y" : false;
+                        if ( ! ( $fs_newsletter_active || $fs_newsletter_expired ) ) {
+                            echo json_encode( array ( "success"=>"no emails sent, no option selected") );
+                            die;
+                        }
+                        $query = 
                             "SELECT u.user_email as email, CONCAT( umf.meta_value, \" \", uml.meta_value ) as name FROM " . $wpdb->users . 
                             " u LEFT JOIN " . $wpdb->usermeta . " ums ON ums.user_id=u.ID AND ums.meta_key='wpfreepp_user_level'" .
                             " LEFT JOIN " . $wpdb->usermeta . " umf ON umf.user_id=u.ID AND umf.meta_key='first_name'" .
                             " LEFT JOIN " . $wpdb->usermeta . " uml ON uml.user_id=u.ID AND uml.meta_key='last_name'" .
-                            " WHERE ums.meta_value=0 AND ums.meta_value IS NOT NULL", array() );
+                            " LEFT JOIN " . $wpdb->pmpro_memberships_users . " pmpro ON pmpro.user_id=u.ID AND pmpro.status='active'" .
+                            " WHERE ums.meta_value=0 AND ums.meta_value IS NOT NULL";
+                        if ( $fs_newsletter_active !== $fs_newsletter_expired ) {
+                            if ( $fs_newsletter_active ) $query .= " AND pmpro.status IS NOT NULL";
+                            if ( $fs_newsletter_expired ) $query .= " AND pmpro.status IS NULL";
+                        }
                         $sendTo = $wpdb->get_results ( $query );
                         break;
                     case "signatures":
@@ -278,7 +307,8 @@ function save_fs_newsletter(){
                         break;
                 }
             }
-            $testing = false; // true on dev computer - not the same as test addresses from UI
+            update_option('fs_newsletter_query', $query );
+            $testing = NEWSLETTER_TEST; // true on dev computer - not the same as test addresses from UI
             $count =0;
             foreach ( $sendTo as $one ) {
                 $email = $one->email;

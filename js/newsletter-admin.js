@@ -14,6 +14,12 @@ newsletterAdmin.controller('newsletterAdminCtrl', ['$scope', '$timeout',
             if ( $('#post input[name=cbdweb_newsletter_test_addresses]').val() === "" ) {
                 if ( ! confirm( 'Are you sure?  This will send to all recipients!' ) ) return;
             }
+            if ( ! 
+                ( $('#post input[name=fs_newsletter_active]')[0].checked || 
+                $('#post input[name=fs_newsletter_expired]')[0].checked ) ) {
+                alert ( 'You must select one or both of active or expired' );
+                return;
+            }
             $('#post input[name=fs_newsletter_send_newsletter]').val('1');
             $scope.fs_newsletter_send_newsletter = '1';
             var data = $('#post').serializeArray();

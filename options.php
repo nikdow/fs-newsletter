@@ -74,6 +74,11 @@ function cbdweb_newsletter_options() {
                 </p>
 
             </form>
+            <div>
+                <P>Newsletter query:<br/>
+                    <?=get_option( 'fs_newsletter_query' );?>
+                </P>
+            </div>
         </div>
     <?php
 }
