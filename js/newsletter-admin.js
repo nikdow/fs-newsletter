@@ -15,8 +15,11 @@ newsletterAdmin.controller('newsletterAdminCtrl', ['$scope', '$timeout',
                 if ( ! confirm( 'Are you sure?  This will send to all recipients!' ) ) return;
             }
             if ( ! 
-                ( $('#post input[name=fs_newsletter_active]')[0].checked || 
-                $('#post input[name=fs_newsletter_expired]')[0].checked ) ) {
+                (
+                    $('#post input[name=fs_newsletter_active]')[0].checked || 
+                    $('#post input[name=fs_newsletter_expired]')[0].checked ||
+                    $scope.data.postType==="signatures"
+                ) ) {
                 alert ( 'You must select one or both of active or expired' );
                 return;
             }
