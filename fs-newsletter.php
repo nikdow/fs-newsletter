@@ -243,15 +243,13 @@ function save_fs_newsletter(){
             function set_content_type( $content_type ){
                     return 'text/html';
             }
-            
+            $sendTo = array();
             $test_addresses = $_POST['fs_newsletter_test_addresses'];
             session_write_close (); // avoid session locking blocking progess ajax calls
             update_post_meta($post->ID, "fs_newsletter_progress", json_encode( array ( 'count'=>0, 'total'=>Count( $sendTo ), 'message'=>'querying the database' ) ) );
                     
             if( $test_addresses !== "" ) {
-                
                 $addressArray = explode(",", $test_addresses );
-                $sendTo = array();
                 foreach ( $addressArray as $address ) {
                     $sendTo[] = (object) array("name"=>"", "email"=>trim( $address ) );
                 }
