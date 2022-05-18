@@ -275,7 +275,7 @@ function save_fs_newsletter(){
                             " LEFT JOIN " . $wpdb->usermeta . " umf ON umf.user_id=u.ID AND umf.meta_key='first_name'" .
                             " LEFT JOIN " . $wpdb->usermeta . " uml ON uml.user_id=u.ID AND uml.meta_key='last_name'" .
                             " LEFT JOIN " . $wpdb->pmpro_memberships_users . " pmpro ON pmpro.user_id=u.ID AND pmpro.status='active'" .
-                            " WHERE ums.meta_value=0 AND ums.meta_value IS NOT NULL AND email != ''"; // check email empty since fs-signatures plugin allows admin edit to remove email address
+                            " WHERE ums.meta_value=0 AND ums.meta_value IS NOT NULL AND user_email != ''"; // check email empty since fs-signatures plugin allows admin edit to remove email address
                         if ( $fs_newsletter_active !== $fs_newsletter_expired ) {
                             if ( $fs_newsletter_active ) $query .= " AND pmpro.status IS NOT NULL";
                             if ( $fs_newsletter_expired ) $query .= " AND pmpro.status IS NULL";
